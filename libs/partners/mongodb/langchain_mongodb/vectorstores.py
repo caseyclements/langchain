@@ -235,6 +235,11 @@ class MongoDBAtlasVectorSearch(VectorStore):
     def embeddings(self) -> Embeddings:
         return self._embedding
 
+    @property
+    def collection(self) -> Collection:
+        return self._collection
+
+
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
         scoring: dict[str, Callable] = {
             "euclidean": self._euclidean_relevance_score_fn,
