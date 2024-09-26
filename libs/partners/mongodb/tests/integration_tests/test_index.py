@@ -22,8 +22,8 @@ def collection() -> Generator:
     """Depending on uri, this could point to any type of cluster."""
     uri = os.environ.get("MONGODB_ATLAS_URI")
     client: MongoClient = MongoClient(uri)
+    client[DB_NAME].create_collection(COLLECTION_NAME)
     clxn = client[DB_NAME][COLLECTION_NAME]
-    clxn.insert_one({"foo": "bar"})
     yield clxn
     clxn.drop()
 
@@ -58,22 +58,26 @@ def test_search_index_commands(collection: Collection) -> None:
     assert len(indexes) == 1
     assert indexes[0]["name"] == index_name
 
-    new_similarity = "euclidean"
-    index.update_vector_search_index(
-        collection,
-        index_name,
-        DIMENSIONS,
-        "embedding",
-        new_similarity,
-        filters=[],
-        wait_until_complete=wait_until_complete,
-    )
+    # TODO Include update_search_index after [CLOUDP-275518].
+    #  It is not yet available on Local Atlas.
+    CLOUDP_275518 = False
+    if CLOUDP_275518:
+        new_similarity = "euclidean"
+        index.update_vector_search_index(
+            collection,
+            index_name,
+            DIMENSIONS,
+            "embedding",
+            new_similarity,
+            filters=[],
+            wait_until_complete=wait_until_complete,
+        )
 
-    assert index._is_index_ready(collection, index_name)
-    indexes = list(collection.list_search_indexes())
-    assert len(indexes) == 1
-    assert indexes[0]["name"] == index_name
-    assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == new_similarity
+        assert index._is_index_ready(collection, index_name)
+        indexes = list(collection.list_search_indexes())
+        assert len(indexes) == 1
+        assert indexes[0]["name"] == index_name
+        assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == new_similarity
 
     index.drop_vector_search_index(
         collection, index_name, wait_until_complete=wait_until_complete
