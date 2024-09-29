@@ -239,6 +239,9 @@ class MongoDBAtlasVectorSearch(VectorStore):
     def collection(self) -> Collection:
         return self._collection
 
+    @collection.setter
+    def collection(self, value: Collection) -> None:
+        self._collection = value
 
     def _select_relevance_score_fn(self) -> Callable[[float], float]:
         scoring: dict[str, Callable] = {
