@@ -77,7 +77,9 @@ def test_search_index_commands(collection: Collection) -> None:
         indexes = list(collection.list_search_indexes())
         assert len(indexes) == 1
         assert indexes[0]["name"] == index_name
-        assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == new_similarity
+        assert (
+            indexes[0]["latestDefinition"]["fields"][0]["similarity"] == new_similarity
+        )
 
     index.drop_vector_search_index(
         collection, index_name, wait_until_complete=wait_until_complete
