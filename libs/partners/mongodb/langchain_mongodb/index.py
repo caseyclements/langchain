@@ -193,13 +193,8 @@ def _is_index_ready(collection: Collection, index_name: str) -> bool:
     Returns:
         bool : True if the index is present and READY false otherwise
     """
-    try:
-        search_indexes = collection.list_search_indexes(index_name)
-    except OperationFailure as e:
-        raise OperationFailure(_search_index_error_message()) from e
-
-    for index in search_indexes:
-        if index["type"] == "vectorSearch" and index["status"] == "READY":
+    for idx in collection.list_search_indexes(index_name):
+        if idx.get("status") == "READY":
             return True
     return False
 
