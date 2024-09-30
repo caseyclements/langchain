@@ -29,6 +29,8 @@ INTERVAL = 0.5
 
 
 class PatchedMongoDBAtlasVectorSearch(MongoDBAtlasVectorSearch):
+    """Waits for full indexing after inserting docs/texts, or creating indexes."""
+
     def bulk_embed_and_insert_texts(
         self,
         texts: Union[List[str], Iterable[str]],
@@ -38,29 +40,12 @@ class PatchedMongoDBAtlasVectorSearch(MongoDBAtlasVectorSearch):
         """Patched insert_texts that waits for data to be indexed before returning"""
         ids_inserted = super().bulk_embed_and_insert_texts(texts, metadatas, ids)
         start = monotonic()
-        while len(ids_inserted) != len(self.similarity_search("sandwich")) and (
-            monotonic() - start <= TIMEOUT
-        ):
-            sleep(INTERVAL)
-        return ids_inserted
-
-    def create_vector_search_index(
-        self,
-        dimensions: int,
-        filters: Optional[List[str]] = None,
-        update: bool = False,
-    ) -> None:
-        result = super().create_vector_search_index(
-            dimensions=dimensions, filters=filters, update=update
-        )
-        start = monotonic()
         while monotonic() - start <= TIMEOUT:
-            if indexes := list(
-                self._collection.list_search_indexes(name=self._index_name)
-            ):
-                if indexes[0].get("status") == "READY":
-                    return result
-            sleep(INTERVAL)
+            if len(ids_inserted) == len(self.similarity_search("sandwich")):
+                return ids_inserted
+            else:
+                sleep(INTERVAL)
+        raise TimeoutError(f"Failed to embed, insert, and index texts in {TIMEOUT}s.")
 
 
 class ConsistentFakeEmbeddings(Embeddings):
