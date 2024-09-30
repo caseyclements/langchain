@@ -31,6 +31,7 @@ def embeddings() -> Embeddings:
 
 def test_mmr(embeddings: Embeddings, collection: Collection) -> None:
     texts = ["foo", "foo", "fou", "foy"]
+    collection.delete_many({})
     vectorstore = PatchedMongoDBAtlasVectorSearch.from_texts(
         texts,
         embedding=embeddings,
