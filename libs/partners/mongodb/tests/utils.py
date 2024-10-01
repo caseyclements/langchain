@@ -39,9 +39,10 @@ class PatchedMongoDBAtlasVectorSearch(MongoDBAtlasVectorSearch):
     ) -> List:
         """Patched insert_texts that waits for data to be indexed before returning"""
         ids_inserted = super().bulk_embed_and_insert_texts(texts, metadatas, ids)
+        n_docs = self.collection.count_documents({})
         start = monotonic()
         while monotonic() - start <= TIMEOUT:
-            if len(ids_inserted) == len(self.similarity_search("sandwich")):
+            if len(self.similarity_search("sandwich", k=n_docs)) == n_docs:
                 return ids_inserted
             else:
                 sleep(INTERVAL)
