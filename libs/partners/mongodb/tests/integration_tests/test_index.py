@@ -16,7 +16,7 @@ COLLECTION_NAME = "test_index"
 VECTOR_INDEX_NAME = "vector_index"
 
 TIMEOUT = 120
-DIMENSIONS = 10
+DIMENSIONS = 5
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +30,7 @@ def collection() -> Generator:
     clxn.drop()
 
 
-def test_search_index_commands(collection: Collection) -> None:
+def test_search_index_drop_add_delete_commands(collection: Collection) -> None:
     index_name = VECTOR_INDEX_NAME
     dimensions = DIMENSIONS
     path = "embedding"
@@ -60,23 +60,6 @@ def test_search_index_commands(collection: Collection) -> None:
     assert len(indexes) == 1
     assert indexes[0]["name"] == index_name
 
-    new_similarity = "euclidean"
-    index.update_vector_search_index(
-        collection,
-        index_name,
-        DIMENSIONS,
-        "embedding",
-        new_similarity,
-        filters=[],
-        wait_until_complete=wait_until_complete,
-    )
-
-    assert index._is_index_ready(collection, index_name)
-    indexes = list(collection.list_search_indexes())
-    assert len(indexes) == 1
-    assert indexes[0]["name"] == index_name
-    assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == new_similarity
-
     index.drop_vector_search_index(
         collection, index_name, wait_until_complete=wait_until_complete
     )
@@ -84,11 +67,47 @@ def test_search_index_commands(collection: Collection) -> None:
     indexes = list(collection.list_search_indexes())
     assert len(indexes) == 0
 
-    collection.delete_many({})
+
+@pytest.mark.skip("collection.update_vector_search_index requires [CLOUDP-275518]")
+def test_search_index_update_vector_search_index(collection: Collection) -> None:
+    index_name = "INDEX_TO_UPDATE"
+    similarity_orig = "cosine"
+    similarity_new = "euclidean"
+
+    # Create another iddex
+    index.create_vector_search_index(
+        collection=collection,
+        index_name=index_name,
+        dimensions=DIMENSIONS,
+        path="embedding",
+        similarity=similarity_orig,
+        wait_until_complete=TIMEOUT,
+    )
+
+    assert index._is_index_ready(collection, index_name)
+    indexes = list(collection.list_search_indexes())
+    assert len(indexes) == 1
+    assert indexes[0]["name"] == index_name
+    assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == similarity_orig
+
+    index.update_vector_search_index(
+        collection=collection,
+        index_name=index_name,
+        dimensions=DIMENSIONS,
+        path="embedding",
+        similarity=similarity_new,
+        wait_until_complete=TIMEOUT,
+    )
+
+    assert index._is_index_ready(collection, index_name)
+    indexes = list(collection.list_search_indexes())
+    assert len(indexes) == 1
+    assert indexes[0]["name"] == index_name
+    assert indexes[0]["latestDefinition"]["fields"][0]["similarity"] == similarity_new
 
 
 def test_vectorstore_create_vector_search_index(collection: Collection) -> None:
-    """Tests vector's wrapper around index command."""
+    """Tests vectorstore wrapper around index command."""
 
     # Set up using the index module's api
     if len(list(collection.list_search_indexes())) != 0:
